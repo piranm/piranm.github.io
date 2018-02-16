@@ -67,7 +67,7 @@ h2 {
   }
 }
 
-@media (max-width: 850px) {
+@media (max-width: 849px) {
   .title-and-dates {
   }
   .title-and-dates .title {
@@ -81,9 +81,9 @@ h2 {
   }
 }
 
-@media print {
+@media (max-width: 849px) {
   body, .title-and-dates .dates {
-    font-size: 17px;
+    font-size: 15px;
   }
 }
 
@@ -95,16 +95,4 @@ h2 {
 
 @page {
   margin: 1.5cm;
-  @bottom-left {
-    content: "Department of Strategy";
-  }
-  @bottom-right {
-    content: counter(page) " of " counter(pages);
-  }
-}
-
-@media xprint {
-  body {
-    margin: 30px;
-  }
 }
