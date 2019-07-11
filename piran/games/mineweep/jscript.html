@@ -1,0 +1,526 @@
+<HTML>
+<HEAD>
+<TITLE>Mine Weeper -- JavaScript edition</TITLE>
+
+<SCRIPT>
+<!-- // start of commenting out
+
+//
+// The constant pool
+//
+var SQ_UNKNOWN = 0;
+var SQ_FLAG = 1;
+var SQ_QUESTION = 2;
+var SQ_MINE = 3;
+var SQ_BADFLAG = 4;
+var SQ_BADCLICK = 5;
+var SQ_NUMSTART = 6;
+var SQ_NUMBLANK = 6;
+var SQ_MAXNUM = 6 + 8;
+
+//
+// Cache all the images that I'm going to need
+//
+img01 = new Image(); img01.src="images/sqBomb.gif";
+img02 = new Image(); img02.src="images/sqFlag.gif";
+img03 = new Image(); img03.src="images/sqQuestn.gif";
+img04 = new Image(); img04.src="images/sqBadFlg.gif";
+img05 = new Image(); img05.src="images/sqBadClk.gif";
+img06 = new Image(); img06.src="images/sqBlank.gif";
+img07 = new Image(); img07.src="images/sqOne.gif";
+img08 = new Image(); img08.src="images/sqTwo.gif";
+img09 = new Image(); img09.src="images/sqThree.gif";
+img10 = new Image(); img10.src="images/sqFour.gif";
+img11 = new Image(); img11.src="images/sqFive.gif";
+img12 = new Image(); img12.src="images/sqSix.gif";
+img13 = new Image(); img13.src="images/sqSeven.gif";
+img14 = new Image(); img14.src="images/sqEight.gif";
+img15 = new Image(); img15.src="images/sqUnknwn.gif";
+img16 = new Image(); img16.src="images/youLost.gif";
+img17 = new Image(); img17.src="images/youWon.gif";
+img18 = new Image(); img18.src="images/youBlank.gif";
+
+//
+// Utility functions
+//
+function randInt( min, max ) {
+  return min + Math.floor(Math.random() * (max-min));
+}
+
+function maxInt( one, two ) {
+  if ( one > two )
+    return one;
+  return two;
+}
+
+function minInt( one, two ) {
+  if ( one < two )
+    return one;
+  return two;
+}
+
+//
+// Argument processing stuff
+//
+
+// The default values
+var numRows = 8;    // The number of rows
+var numCols = 8;    // The number of columns
+var numMines = 10;  // The maximum number of mines
+
+// Process an integer argument
+function getIntArg( argString, argName, defaultValue ) {
+  var posn = argString.indexOf(argName+"=");
+  if ( posn == -1 ) {
+    return defaultValue;
+  }
+
+  var argValue = argString.substring( posn+argName.length+1, argString.length );
+  posn = argValue.indexOf('&');
+  if ( posn != -1 ) {
+    argValue = argValue.substring( 0, posn );
+  }
+
+  argValue = parseInt( argValue );
+  if ( (""+argValue) == "NaN" ) {
+    alert( "It was NaN" );
+    return defaultValue;
+  }
+  return argValue;
+}
+
+// Process the arguments to the page
+function processArguments( ) {
+  var args = "" + document.location;
+  var posn = args.indexOf('?');
+  if ( posn == -1 ) {
+    return; // No arguments
+  }
+  args = args.substring( posn+1, args.length );
+
+  var num = getIntArg( args, "rows", numRows );
+  if ( num >= 5 ) {
+    numRows = num;
+  }
+  var num = getIntArg( args, "cols", numCols );
+  if ( num >= 5 ) {
+    numCols = num;
+  }
+  var num = getIntArg( args, "mines", numMines );
+  if ( num >= 5 ) {
+    numMines = num;
+  }
+}
+
+// Do the processing
+processArguments( );
+
+
+//
+// Set up the game board
+//
+
+// The global mine field variables
+var mineField;     // Boolean 2D array of the mines
+var showSquare;    // int 2D array of squares that have been revealed
+var numToReveal;   // the number of unmined squares left to reveal
+var isPlayingGame; // is the game being played?
+
+// Lay out the mine field arrays
+function layMineField( ) {
+  // Set up the mine arrays
+  mineField = Array(numCols);
+  showSquare = Array(numCols);
+  numToReveal = numCols * numRows - numMines;
+
+  // Clear the arrays
+  var c, r;
+  for ( c = 0 ; c < numCols ; c++ ) {
+    mineField[c] = Array(numRows);
+    showSquare[c] = Array(numCols);
+    for ( r = 0 ; r < numRows ; r++ ) {
+      mineField[c][r] = false;
+      showSquare[c][r] = SQ_UNKNOWN;
+    }
+  }
+
+  // Plant mines on the field
+  for ( i = 0 ; i < numMines ; i++ ) {
+    r = randInt( 0, numRows );
+    c = randInt( 0, numCols );
+    if ( ! mineField[c][r] ) {
+      mineField[c][r] = true;
+    } else {
+      numToReveal = numToReveal + 1;
+    }
+  }
+
+  // It's okay to play the game now
+  isPlayingGame = true;
+}
+layMineField( );
+
+
+//
+// Functions used to play the game
+//
+
+// Calculate number of bombs in position given
+function calcBombCount( clickC, clickR ) {
+  var bombCount = 0;
+  var c, r;
+  for ( c = maxInt(0,clickC-1) ; c < minInt(numCols,clickC+2) ; c++ ) {
+    for ( r = maxInt(0,clickR-1) ; r < minInt(numRows,clickR+2) ; r++ ) {
+      if ( mineField[c][r] ) {
+        bombCount = bombCount + 1;
+      }
+    }
+  }
+  return bombCount;
+}
+
+// Get the image for the number of bomb counts
+function imgForBombCount( bombCount ) {
+  if ( bombCount == 1 ) {
+    return "images/sqOne.gif";
+  } else if ( bombCount == 2 ) {
+    return "images/sqTwo.gif";
+  } else if ( bombCount == 3 ) {
+    return "images/sqThree.gif";
+  } else if ( bombCount == 4 ) {
+    return "images/sqFour.gif";
+  } else if ( bombCount == 5 ) {
+    return "images/sqFive.gif";
+  } else if ( bombCount == 6 ) {
+    return "images/sqSix.gif";
+  } else if ( bombCount == 7 ) {
+    return "images/sqSeven.gif";
+  } else if ( bombCount == 8 ) {
+    return "images/sqEight.gif";
+  } else {
+    return "images/sqBlank.gif";
+  }
+}
+
+// Reveal all the unrevealed squares
+function revealAll( ) {
+  var c, r;
+  for ( c = 0 ; c < numCols ; c++ ) {
+    for ( r = 0 ; r < numRows ; r++ ) {
+      if ( showSquare[c][r] == SQ_UNKNOWN ) {
+        if ( mineField[c][r] ) {
+          document.images["sq"+c+"_"+r].src = "images/sqBomb.gif";
+        }
+      } else if ( showSquare[c][r] == SQ_FLAG ) {
+        if ( ! mineField[c][r] ) {
+          document.images["sq"+c+"_"+r].src = "images/sqBadFlg.gif";
+        }
+      }
+    }
+  }
+}
+
+// Reveal the given square
+// If the square has a zero bomb count, reveal neighbouring squares
+// This will reveal the large blank areas, by recursion
+function revealSquare( clickC, clickR ) {
+  var bombCount;
+  var c, r;
+
+  // Place the correct bomb on this square
+  bombCount = calcBombCount(clickC,clickR);
+  showSquare[clickC][clickR] = SQ_NUMSTART + bombCount;
+  document.images["sq"+clickC+"_"+clickR].src = imgForBombCount( bombCount );
+  numToReveal = numToReveal - 1;
+
+  // If it was empty, reveal surrounding squares
+  if ( bombCount == 0 ) {
+    for ( c = maxInt(0,clickC-1) ; c < minInt(numCols,clickC+2) ; c++ ) {
+      for ( r = maxInt(0,clickR-1) ; r < minInt(numRows,clickR+2) ; r++ ) {
+        if ( (showSquare[c][r] == SQ_UNKNOWN) || (showSquare[c][r] == SQ_QUESTION) ) {
+          revealSquare(c, r);
+        }
+      }
+    }
+  }
+}
+
+// Place a tag character on the given square
+function tagSquare( clickC, clickR ) {
+  var i, tagType;
+
+  // Find which radio button is pressed
+  for ( i = 0 ; i < document.clickTypeForm.clickType.length ; i++ ) {
+    if ( document.clickTypeForm.clickType[i].checked ) {
+      tagType = document.clickTypeForm.clickType[i].value;
+      break;
+    }
+  }
+
+  // We're placing a flag
+  if ( tagType.indexOf('flag') == 0 ) {
+    if ( (showSquare[clickC][clickR] == SQ_UNKNOWN) || (showSquare[clickC][clickR] == SQ_QUESTION) ) {
+      showSquare[clickC][clickR] = SQ_FLAG;
+      document.images["sq"+clickC+"_"+clickR].src = "images/sqFlag.gif";
+    } else if ( showSquare[clickC][clickR] == SQ_FLAG ) {
+      showSquare[clickC][clickR] = SQ_UNKNOWN;
+      document.images["sq"+clickC+"_"+clickR].src = "images/sqUnknwn.gif";
+    }
+
+  // We're placing a question mark
+  } else if ( tagType.indexOf('question') == 0 ) {
+    if ( showSquare[clickC][clickR] == SQ_UNKNOWN ) {
+      showSquare[clickC][clickR] = SQ_QUESTION;
+      document.images["sq"+clickC+"_"+clickR].src = "images/sqQuestn.gif";
+    } else if ( showSquare[clickC][clickR] == SQ_FLAG ) {
+      showSquare[clickC][clickR] = SQ_QUESTION;
+      document.images["sq"+clickC+"_"+clickR].src = "images/sqQuestn.gif";
+    }
+  }
+
+  // If we're on an one shot radio button, set back to normal
+  if ( tagType.indexOf('1') != -1 )
+    document.clickTypeForm.clickType[0].checked = true;
+
+  return false;
+}
+
+// Someone won the game (probably the user)
+function wonGame( ) {
+  isPlayingGame = false;
+  document.images["gameResult"].src = "images/youWon.gif";
+}
+
+// Someone lost the game (probably the user)
+function lostGame( ) {
+  isPlayingGame = false;
+  document.images["gameResult"].src = "images/youLost.gif";
+}
+
+// A user clicked on a square
+function clickSq( clickC, clickR ) {
+  if ( ! isPlayingGame ) {
+    return false;
+  }
+
+  // Someone tried to tag, which is done elsewhere
+  if ( ! document.clickTypeForm.clickType[0].checked ) {
+    return tagSquare( clickC, clickR );
+  }
+
+  // If the square is already revealed or flagged, we can't do anything
+  if ( (showSquare[clickC][clickR] != SQ_UNKNOWN) && (showSquare[clickC][clickR] != SQ_QUESTION) )
+    return false; // Can't click on other squares
+
+  // The user made a mistake, an clicked on a mine
+  if ( mineField[clickC][clickR] ) {
+    showSquare[clickC][clickR] = SQ_BADCLICK;
+    document.images["sq"+clickC+"_"+clickR].src = "images/sqBadClk.gif";
+    revealAll( );
+    lostGame( );
+
+  // Reveal the square
+  } else {
+    revealSquare( clickC, clickR );
+    if ( numToReveal <= 0 ) {
+      wonGame( );
+    }
+  }
+
+  // Don't follow the hot link
+  return false;
+}
+
+// Draw the table
+function drawTable() {
+  for ( r = 0 ; r < numRows ; r++ ) {
+    for ( c = 0 ; c < numCols ; c++ ) {
+      document.write( "<A HREF=# onClick=\"return clickSq("+c+","+r+")\"><img name=\"sq"+c+"_"+r+"\" src=\"images/sqUnknwn.gif\" border=0></A>" );
+    }
+    document.writeln( "<br>" );
+  }
+}
+
+// End of script -->
+</SCRIPT>
+
+</HEAD>
+
+<BODY BGCOLOR="#ffffff" TEXT="#000000" LINK="#ff0033" ALINK="#003399" VLINK="#003399" BACKGROUND="../../ruled_paper.gif">
+
+<TABLE BORDER=0>
+    <TR>
+        <TD WIDTH=79><IMG SRC="../../punch.gif" WIDTH=79 HEIGHT=18 ALT=""></TD>
+        <TD><A NAME="MineWeepJS"><H2> Mine Weeper in JavaScript </H2></A><TD>
+    </TR>
+    <TR>
+        <TD></TD>
+        <TD>
+
+It's called Mine Weeper, because I weep when I think how long I've spent playing
+Mine Sweeper.<p>
+
+<table>
+  <tr><td align=center>
+
+<table border=0>
+  <form name=clickTypeForm>
+  <tr><td align=right>
+          Reveal:</td>
+      <td><input type="radio" name="clickType" value="reveal" CHECKED>Continuous</td></tr>
+  <tr><td align=right>
+          <img src="images/sqFlag.gif"> Flag:</td>
+      <td><input type="radio" name="clickType" value="flag1">Once
+          <input type="radio" name="clickType" value="flags">Continuous</td></tr>
+  <tr><td align=right>
+          <img src="images/sqQuestn.gif"> Question:</td>
+      <td><input type="radio" name="clickType" value="question1">Once
+          <input type="radio" name="clickType" value="questions">Continuous</td></tr>
+  </form>
+</table>
+
+  </td></tr>
+
+  <tr><td align=center>
+
+<!-- The mine field is dipslayed here -->
+<table border=4>
+<tr><td>
+  <SCRIPT>
+    <!-- // start of script
+    drawTable( );
+    // end of script -->
+  </SCRIPT>
+</td></tr></table>
+
+  </td/tr>
+
+  <tr><td align=center>
+    <!-- Where the result of the game is displayed -->
+    <img name="gameResult" src="images/youBlank.gif">
+  </td/tr>
+
+</table>
+
+<p>
+
+<!-- The new game table and form -->
+<table border=1 cellpadding=3>
+<tr><th align=center colspan=2>Play A New Game</th></tr>
+<tr><td align=center>Pre-Defined Settings</td> <td align=center>Custom Settings</td></tr>
+
+<tr><td rowspan=3 valign=top>
+
+<SCRIPT>
+<!-- // Start of script
+function validateNewGame( ) {
+  var newRows = parseInt( document.newGameForm.rows.value );
+  if ( ((""+newRows) == "NaN") || (newRows < 5) ) {
+    document.newGameForm.rows.focus( );
+    alert( "You must enter a number of rows (at least 5)." );
+    return false;
+  }
+  var newCols = parseInt( document.newGameForm.cols.value );
+  if ( ((""+newCols) == "NaN") || (newCols < 5) ) {
+    document.newGameForm.cols.focus( );
+    alert( "You must enter a number of columns (at least 5)." );
+    return false;
+  }
+  var newMines = parseInt( document.newGameForm.mines.value );
+  if ( ((""+newMines) == "NaN") || (newMines < 5) ) {
+    document.newGameForm.mines.focus( );
+    alert( "You must enter a number of mines (at least 5)." );
+    return false;
+  }
+  var maxMines = newRows*newCols/3;
+  if ( newMines > maxMines ) {
+    document.newGameForm.mines.focus( );
+    alert( "You have entered too many mines (at most "+maxMines+")." );
+    return false;
+  }
+  return true;
+}
+
+var docName = "" + document.location;
+if ( docName.indexOf('?') != -1 ) {
+  docName = docName.substring( 0, docName.indexOf('?') );
+}
+document.writeln( "<form name=newGameForm method=get action=\""+docName+"\">" );
+
+var check1, check2, check3, check4;
+var testValue = "" + numCols + "," + numRows + "," + numMines;
+if ( testValue == "8,8,10" ) { check1 = "CHECKED"; }
+else if ( testValue == "16,16,40" ) { check2 = "CHECKED"; }
+else if ( testValue == "30,16,99" ) { check3 = "CHECKED"; }
+else { check4 = "CHECKED"; }
+
+function choosePreset( radioBtn ) {
+  var setString = radioBtn.value;
+  if ( setString == "" )
+    return true;
+  
+  var posn = setString.indexOf(',');
+  document.newGameForm.cols.value = setString.substring(0,posn);
+  setString = setString.substring( posn+1, setString.length );
+  posn = setString.indexOf(',');
+  document.newGameForm.rows.value = setString.substring(0,posn);
+  setString = setString.substring( posn+1, setString.length );
+  document.newGameForm.mines.value = setString.substring(0,setString.length);
+  return true;
+}
+
+document.writeln( "<input type=\"radio\" name=\"preset\" onClick='choosePreset(this);' value=\"8,8,10\" "+check1+">Simple<br>" );
+document.writeln( "<input type=\"radio\" name=\"preset\" onClick='choosePreset(this);' value=\"16,16,40\" "+check2+">Intermediate<br>" );
+document.writeln( "<input type=\"radio\" name=\"preset\" onClick='choosePreset(this);' value=\"30,16,99\" "+check3+">Expert<br>" );
+document.writeln( "<input type=\"radio\" name=\"preset\" onClick='choosePreset(this);' value=\"\" "+check4+">Custom..." );
+
+document.writeln( '</td>' );
+
+function toCustom( ) {
+  document.newGameForm.preset[3].checked = true;
+}
+
+document.writeln( "<td align=right>    Number of Rows:    <input name=rows  onChange='toCustom( );' type=text value=\""+numRows+"\" size=3></td></tr>" );
+document.writeln( "<tr><td align=right>Number of Columns: <input name=cols  onChange='toCustom( );' type=text value=\""+numCols+"\" size=3></td></tr>" );
+document.writeln( "<tr><td align=right>Number of Mines:   <input name=mines onChange='toCustom( );' type=text value=\""+numMines+"\" size=3></td></tr>" );
+
+// end of script -->
+</SCRIPT>
+
+<tr><td align=right colspan=2><input name="New Game" type=submit value="New Game" onClick='return validateNewGame()'></td></tr>
+</form>
+</table>
+<p>
+
+<STRONG>Note:</STRONG>
+If you choose a large board, it may take some time to draw. Don't press Reload or Refresh during this time, as your browser may crash.<P>
+
+<STRONG>Note:</STRONG>
+On some large boards, clicking on an empty square may not reveal all the squares around it.<P>
+
+
+        </TD>
+    </TR>
+</TABLE>
+
+<HR>
+
+<TABLE BORDER=0>
+    <TR>
+        <TD WIDTH=79><IMG SRC="/piran/punch.gif" WIDTH=79 HEIGHT=18 ALT=""></TD>
+        <TD>
+        	<A NAME="Other"><IMG SRC="/piran/t_other_pages.gif" ALT="Other Pages" WIDTH=254 HEIGHT=39></A>
+        </TD>
+    </TR>
+
+    <TR>
+        <TD></TD>
+        <TD>
+        	<A HREF="../">Games Index</A>
+			<P>
+        </TD>
+    </TR>
+</TABLE>
+
+</BODY>
+</HTML>
