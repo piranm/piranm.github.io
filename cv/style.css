@@ -89,7 +89,7 @@ h2 {
 }
 
 @media print {
-  .item {
+  section {
     page-break-inside: avoid;
   }
 }
