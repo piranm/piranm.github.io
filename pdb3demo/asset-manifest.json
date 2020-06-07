@@ -1,0 +1,22 @@
+{
+  "files": {
+    "main.css": "//pdb3demo/static/css/main.88824ec2.chunk.css",
+    "main.js": "//pdb3demo/static/js/main.5d93b7b8.chunk.js",
+    "main.js.map": "//pdb3demo/static/js/main.5d93b7b8.chunk.js.map",
+    "runtime-main.js": "//pdb3demo/static/js/runtime-main.50e3a477.js",
+    "runtime-main.js.map": "//pdb3demo/static/js/runtime-main.50e3a477.js.map",
+    "static/js/2.45a22218.chunk.js": "//pdb3demo/static/js/2.45a22218.chunk.js",
+    "static/js/2.45a22218.chunk.js.map": "//pdb3demo/static/js/2.45a22218.chunk.js.map",
+    "index.html": "//pdb3demo/index.html",
+    "precache-manifest.dfc3a7d12f1caa8416bb918b25f40bf5.js": "//pdb3demo/precache-manifest.dfc3a7d12f1caa8416bb918b25f40bf5.js",
+    "service-worker.js": "//pdb3demo/service-worker.js",
+    "static/css/main.88824ec2.chunk.css.map": "//pdb3demo/static/css/main.88824ec2.chunk.css.map",
+    "static/js/2.45a22218.chunk.js.LICENSE.txt": "//pdb3demo/static/js/2.45a22218.chunk.js.LICENSE.txt"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.50e3a477.js",
+    "static/js/2.45a22218.chunk.js",
+    "static/css/main.88824ec2.chunk.css",
+    "static/js/main.5d93b7b8.chunk.js"
+  ]
+}
